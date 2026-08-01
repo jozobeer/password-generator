@@ -1,5 +1,403 @@
 <!doctype html>
 <html lang="ja">
-<head><meta charset="utf-8"><title>パスワード生成ツール</title></head>
-<body><h1>パスワード生成ツール</h1><p>builder がこのファイルを実装で置き換えます。</p></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>パスワード生成ツール</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1f1a'/%3E%3Cpath fill='%233dcf9a' d='M16 4a6 6 0 0 0-6 6v3H8a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V15a2 2 0 0 0-2-2h-2V10a6 6 0 0 0-6-6zm-4 6a4 4 0 1 1 8 0v3h-8V10zm4 9a2 2 0 0 1 1 3.73V26h-2v-3.27A2 2 0 0 1 16 19z'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg-deep: #071410;
+      --bg-mid: #0d241c;
+      --surface: #122a22;
+      --surface-raised: #18352b;
+      --border: #2a5445;
+      --text: #e6f5ef;
+      --muted: #8fb3a5;
+      --accent: #3dcf9a;
+      --accent-dim: #2a9a72;
+      --danger: #f07178;
+      --radius: 12px;
+      --font-ui: "Trebuchet MS", "Lucida Grande", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "Consolas", "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(61, 207, 154, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 80%, rgba(42, 154, 114, 0.1), transparent 50%),
+        linear-gradient(165deg, var(--bg-deep) 0%, var(--bg-mid) 45%, #0a1c16 100%);
+    }
+
+    .card {
+      width: min(100%, 420px);
+      padding: 1.75rem 1.5rem 1.5rem;
+      background: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 1.25rem;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+
+    .result-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    #password {
+      flex: 1;
+      min-width: 0;
+      padding: 0.7rem 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    #password:focus {
+      outline: 2px solid var(--accent-dim);
+      outline-offset: 1px;
+    }
+
+    .length-block {
+      margin-bottom: 1.1rem;
+    }
+
+    .length-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    #lengthValue {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .length-controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    #lengthRange {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    #lengthNumber {
+      width: 4.2rem;
+      padding: 0.4rem 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--text);
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .charsets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .charsets label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .charsets input {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    button {
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    #copyBtn {
+      padding: 0.7rem 1rem;
+      color: var(--bg-deep);
+      background: var(--accent);
+      white-space: nowrap;
+    }
+
+    #copyBtn:hover {
+      background: #55dbab;
+    }
+
+    #generateBtn {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      color: var(--text);
+      background: var(--accent-dim);
+    }
+
+    #generateBtn:hover {
+      background: #328f6a;
+    }
+
+    #message {
+      min-height: 1.4rem;
+      margin: 0.85rem 0 0;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    #message.error {
+      color: var(--danger);
+    }
+
+    #message.success {
+      color: var(--accent);
+    }
+
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.6;
+    }
+
+    footer a {
+      color: inherit;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>パスワード生成ツール</h1>
+
+    <div class="result-row">
+      <input id="password" type="text" readonly aria-label="生成されたパスワード" value="">
+      <button type="button" id="copyBtn">コピー</button>
+    </div>
+
+    <div class="length-block">
+      <div class="length-header">
+        <span>文字数</span>
+        <span id="lengthValue">16</span>
+      </div>
+      <div class="length-controls">
+        <input id="lengthRange" type="range" min="8" max="64" value="16" aria-label="文字数スライダー">
+        <input id="lengthNumber" type="number" min="8" max="64" value="16" aria-label="文字数">
+      </div>
+    </div>
+
+    <div class="charsets">
+      <label><input type="checkbox" id="upper" checked> 英大文字</label>
+      <label><input type="checkbox" id="lower" checked> 英小文字</label>
+      <label><input type="checkbox" id="digits" checked> 数字</label>
+      <label><input type="checkbox" id="symbols" checked> 記号</label>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="generateBtn">生成</button>
+    </div>
+
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <footer style="margin-top:3rem;text-align:center;font-size:.8rem;opacity:.6">
+    <a href="https://apps.jozo.beer" style="color:inherit">apps.jozo.beer</a>
+  </footer>
+
+  <script>
+    const UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const LOWER = "abcdefghijklmnopqrstuvwxyz";
+    const DIGITS = "0123456789";
+    const SYMBOLS = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+    const MIN_LENGTH = 8;
+    const MAX_LENGTH = 64;
+
+    const passwordEl = document.getElementById("password");
+    const copyBtn = document.getElementById("copyBtn");
+    const lengthRange = document.getElementById("lengthRange");
+    const lengthNumber = document.getElementById("lengthNumber");
+    const lengthValue = document.getElementById("lengthValue");
+    const generateBtn = document.getElementById("generateBtn");
+    const messageEl = document.getElementById("message");
+    const charsetInputs = [
+      { el: document.getElementById("upper"), chars: UPPER },
+      { el: document.getElementById("lower"), chars: LOWER },
+      { el: document.getElementById("digits"), chars: DIGITS },
+      { el: document.getElementById("symbols"), chars: SYMBOLS },
+    ];
+
+    let copyResetTimer = null;
+
+    function randomIndex(max) {
+      if (max <= 0) throw new Error("max must be positive");
+      const limit = Math.floor(0x100000000 / max) * max;
+      const buf = new Uint32Array(1);
+      let x;
+      do {
+        crypto.getRandomValues(buf);
+        x = buf[0];
+      } while (x >= limit);
+      return x % max;
+    }
+
+    function generatePassword(length, charsets) {
+      if (charsets.length === 0) return null;
+
+      const pool = charsets.join("");
+      const chars = [];
+
+      if (length >= charsets.length) {
+        for (const set of charsets) {
+          chars.push(set[randomIndex(set.length)]);
+        }
+      }
+
+      while (chars.length < length) {
+        chars.push(pool[randomIndex(pool.length)]);
+      }
+
+      for (let i = chars.length - 1; i > 0; i--) {
+        const j = randomIndex(i + 1);
+        const tmp = chars[i];
+        chars[i] = chars[j];
+        chars[j] = tmp;
+      }
+
+      return chars.join("");
+    }
+
+    function selectedCharsets() {
+      return charsetInputs.filter((c) => c.el.checked).map((c) => c.chars);
+    }
+
+    function clampLength(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return MIN_LENGTH;
+      return Math.min(MAX_LENGTH, Math.max(MIN_LENGTH, Math.round(n)));
+    }
+
+    function setLength(value, source) {
+      const length = clampLength(value);
+      if (source !== "range") lengthRange.value = String(length);
+      if (source !== "number") lengthNumber.value = String(length);
+      lengthValue.textContent = String(length);
+      return length;
+    }
+
+    function showMessage(text, type) {
+      messageEl.textContent = text;
+      messageEl.className = type || "";
+    }
+
+    function refreshPassword() {
+      const length = setLength(lengthNumber.value);
+      const charsets = selectedCharsets();
+      const password = generatePassword(length, charsets);
+
+      if (password === null) {
+        passwordEl.value = "";
+        showMessage("文字種を1つ以上選んでください", "error");
+        return;
+      }
+
+      passwordEl.value = password;
+      showMessage("", "");
+    }
+
+    async function copyToClipboard() {
+      const text = passwordEl.value;
+      if (!text) {
+        showMessage("コピーするパスワードがありません", "error");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = "コピーしました";
+        showMessage("クリップボードにコピーしました", "success");
+        if (copyResetTimer) clearTimeout(copyResetTimer);
+        copyResetTimer = setTimeout(() => {
+          copyBtn.textContent = "コピー";
+        }, 1500);
+      } catch {
+        showMessage("コピーに失敗しました", "error");
+      }
+    }
+
+    lengthRange.addEventListener("input", () => {
+      setLength(lengthRange.value, "range");
+      refreshPassword();
+    });
+
+    lengthNumber.addEventListener("input", () => {
+      setLength(lengthNumber.value, "number");
+      refreshPassword();
+    });
+
+    lengthNumber.addEventListener("change", () => {
+      setLength(lengthNumber.value, "number");
+      refreshPassword();
+    });
+
+    for (const item of charsetInputs) {
+      item.el.addEventListener("change", refreshPassword);
+    }
+
+    generateBtn.addEventListener("click", refreshPassword);
+    copyBtn.addEventListener("click", copyToClipboard);
+
+    refreshPassword();
+  </script>
+</body>
 </html>
