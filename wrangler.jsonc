@@ -1,0 +1,6 @@
+{
+  "name": "password-generator",
+  "compatibility_date": "2026-07-01",
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "password-generator.jozo.beer", "custom_domain": true }]
+}

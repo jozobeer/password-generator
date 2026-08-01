@@ -1,0 +1,11 @@
+{
+  "name": "password-generator",
+  "private": true,
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
