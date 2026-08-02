@@ -2,10 +2,12 @@
   "name": "password-generator",
   "private": true,
   "scripts": {
-    "verify": "node scripts/verify.mjs",
+    "test": "node scripts/run-tests.mjs",
+    "verify": "node scripts/verify.mjs && npm test",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "playwright": "^1.62.1",
     "wrangler": "^4"
   }
 }
