@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://password-generator.jozo.beer/sitemap.xml
