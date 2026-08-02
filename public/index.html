@@ -274,6 +274,14 @@
     const SYMBOLS = "!@#$%^&*()_+-=[]{}|;:,.<>?";
     const MIN_LENGTH = 8;
     const MAX_LENGTH = 64;
+    const STORAGE_KEY = "pwgen:options";
+    const DEFAULT_OPTIONS = {
+      length: 16,
+      upper: true,
+      lower: true,
+      digits: true,
+      symbols: true,
+    };
 
     const passwordEl = document.getElementById("password");
     const copyBtn = document.getElementById("copyBtn");
@@ -282,11 +290,15 @@
     const lengthValue = document.getElementById("lengthValue");
     const generateBtn = document.getElementById("generateBtn");
     const messageEl = document.getElementById("message");
+    const upperEl = document.getElementById("upper");
+    const lowerEl = document.getElementById("lower");
+    const digitsEl = document.getElementById("digits");
+    const symbolsEl = document.getElementById("symbols");
     const charsetInputs = [
-      { el: document.getElementById("upper"), chars: UPPER },
-      { el: document.getElementById("lower"), chars: LOWER },
-      { el: document.getElementById("digits"), chars: DIGITS },
-      { el: document.getElementById("symbols"), chars: SYMBOLS },
+      { el: upperEl, chars: UPPER },
+      { el: lowerEl, chars: LOWER },
+      { el: digitsEl, chars: DIGITS },
+      { el: symbolsEl, chars: SYMBOLS },
     ];
 
     let copyResetTimer = null;
@@ -352,10 +364,80 @@
       messageEl.className = type || "";
     }
 
+    function readStoredOptions() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw === null) return { ...DEFAULT_OPTIONS };
+
+        let parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          return { ...DEFAULT_OPTIONS };
+        }
+
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+          return { ...DEFAULT_OPTIONS };
+        }
+
+        const { upper, lower, digits, symbols, length } = parsed;
+        if (
+          typeof upper !== "boolean" ||
+          typeof lower !== "boolean" ||
+          typeof digits !== "boolean" ||
+          typeof symbols !== "boolean"
+        ) {
+          return { ...DEFAULT_OPTIONS };
+        }
+
+        if (!upper && !lower && !digits && !symbols) {
+          return { ...DEFAULT_OPTIONS };
+        }
+
+        if (typeof length !== "number" || !Number.isFinite(length)) {
+          return { ...DEFAULT_OPTIONS };
+        }
+
+        return {
+          length: clampLength(length),
+          upper,
+          lower,
+          digits,
+          symbols,
+        };
+      } catch {
+        return { ...DEFAULT_OPTIONS };
+      }
+    }
+
+    function applyOptions(options) {
+      upperEl.checked = options.upper;
+      lowerEl.checked = options.lower;
+      digitsEl.checked = options.digits;
+      symbolsEl.checked = options.symbols;
+      setLength(options.length);
+    }
+
+    function saveOptions() {
+      try {
+        const options = {
+          length: clampLength(lengthNumber.value),
+          upper: upperEl.checked,
+          lower: lowerEl.checked,
+          digits: digitsEl.checked,
+          symbols: symbolsEl.checked,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(options));
+      } catch {
+        // localStorage may be unavailable; keep generating without persistence
+      }
+    }
+
     function refreshPassword() {
       const length = setLength(lengthNumber.value);
       const charsets = selectedCharsets();
       const password = generatePassword(length, charsets);
+      saveOptions();
 
       if (password === null) {
         passwordEl.value = "";
@@ -409,6 +491,7 @@
     generateBtn.addEventListener("click", refreshPassword);
     copyBtn.addEventListener("click", copyToClipboard);
 
+    applyOptions(readStoredOptions());
     refreshPassword();
   </script>
 </body>

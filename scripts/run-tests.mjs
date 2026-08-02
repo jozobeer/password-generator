@@ -2,8 +2,8 @@ import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-/** Round 1: empty file counts as tests 1, so the floor must be well above 1. */
-const MIN_TESTS = 12;
+/** Round 2: empty file counts as tests 1, so the floor must be well above 1. */
+const MIN_TESTS = 42;
 
 let entries;
 try {
