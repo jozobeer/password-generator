@@ -1,36 +1,53 @@
 # パスワード生成ツール
 
-このリポジトリは kojo が生成した単一ページWebアプリです。
+文字数と文字種条件からランダムなパスワードを生成し、ワンクリックでクリップボードへコピーできる静的単一ページアプリ。
 
-## アイデア
+## アプリ概要と構成
 
-# パスワード生成ツール
+- エントリ: `public/index.html`（CSS/JS インライン、フレームワークなし）
+- 文字数: `#lengthRange`（range）と `#lengthNumber`（number）で 8〜64。`#lengthValue` に現在値を表示。初期値 16。`clampLength()` で正規化し、両 UI と表示を同期
+- 文字種: `#upper` / `#lower` / `#digits` / `#symbols`（初期はすべて ON）。各プールは `ABCDEFGHIJKLMNOPQRSTUVWXYZ` / `abcdefghijklmnopqrstuvwxyz` / `0123456789` / `!@#$%^&*()_+-=[]{}|;:,.<>?`
+- 生成: `crypto.getRandomValues` による棄却サンプリングで偏りを抑え、選択文字種が複数あるときは各集合から最低1文字を確保（長さが足りる場合）し、Fisher–Yates でシャッフル。条件変更や「生成」(`#generateBtn`) で `refreshPassword()` が走る
+- 文字種ゼロ選択: `#password` を空にし、`#message` に「文字種を1つ以上選んでください」
+- コピー: `#copyBtn` → `navigator.clipboard.writeText`。成功時はボタン文言を一時的に「コピーしました」、`#message` に成功表示
+- 永続化: キー `pwgen:options` に `{ length, upper, lower, digits, symbols }` のみ保存。壊れた値・全文字種 OFF・読み書き失敗時は既定値へフォールバック。パスワード本体は保存しない
+- テスト: `tests/app.spec.ts`（Playwright、`file://` で `public/index.html` を開く）
+- 配信: Cloudflare Workers assets（`wrangler.jsonc`）
 
-指定した文字数と条件（英大文字・英小文字・数字・記号）に基づいてランダムなパスワードを生成する静的単一ページアプリ。生成結果をワンクリックでクリップボードにコピーできる。
+現状の仕様の正は README.md と `tests/app.spec.ts` である。`PLAN.md` は初回実装時の計画（歴史的文書）であり、受け入れ条件の最新ソースとしては扱わない。
 
-## 受け入れ条件の種
+## 技術スタック（不変）
 
-- 文字数スライダーまたは入力欄で指定した長さちょうどのパスワードが生成される
-- 英大文字・英小文字・数字・記号の各チェックボックスをオフにすると、生成結果にその文字種が含まれなくなる
-- コピー ボタンを押すと生成されたパスワード文字列がクリップボードに格納される
+- バニラJS・単一 `public/index.html`（CSS/JSインライン）・ビルドなし
+- 配信: Cloudflare Workers assets（`wrangler.jsonc`）
+- テスト: Playwright（`tests/app.spec.ts`、`npm test`）
+- 保守時もこのスタックを維持すること。フレームワーク・ビルドツール・宣言外ライブラリの導入は禁止
 
+## 品質不変条件
 
-## 制約
+次を壊してはならない。変更後は必ず `npm run verify` が通る状態を維持すること。
 
-- 静的アプリ（`public/` 配下のみ）。サーバコード・外部API・ビルドツールは使わない
-- `public/index.html` を単一ファイルで完結させる（CSS/JSインライン可）
-- favicon を `<link rel="icon" href="data:image/svg+xml,...">` のインライン data URI で含める（外部ファイル・外部URL不可。アプリのテーマに合った絵柄にする）
-- hub（apps.jozo.beer）へのフッター導線を入れる。マークアップは次のとおり固定する:
+- **favicon**: `<link rel="icon" href="data:image/svg+xml,...">` のインライン data URI（外部ファイル・外部 URL 不可）
+- **フッター**: hub（apps.jozo.beer）への導線。リンク先 `https://apps.jozo.beer` とリンクテキスト `apps.jozo.beer` は変えない
 
-  ```html
-  <footer style="margin-top:3rem;text-align:center;font-size:.8rem;opacity:.6">
-    <a href="https://apps.jozo.beer" style="color:inherit">apps.jozo.beer</a>
-  </footer>
-  ```
+```html
+<footer style="margin-top:3rem;text-align:center;font-size:.8rem;opacity:.6">
+  <a href="https://apps.jozo.beer" style="color:inherit">apps.jozo.beer</a>
+</footer>
+```
 
-  スタイル（リンク色を含む）はアプリのテーマに合わせて調整してよいが、リンク先 `https://apps.jozo.beer` とリンクテキスト `apps.jozo.beer` は変えない。リンク色を変える場合は背景とのコントラストを確保すること
+スタイル（リンク色を含む）はテーマに合わせて調整してよい。リンク色を変える場合は背景とのコントラストを確保すること。body が flex/grid のセンタリングレイアウトのときは、`flex-direction: column` にするかメインコンテナ末尾に置き、フッターが横並びの flex アイテムにならないようにする。
 
-  配置は縦方向の通常フローの最下部に統合する。body がセンタリングレイアウト（display:flex / display:grid で中央寄せ）の場合、`</body>` 直前に置くと footer がその flex/grid アイテムになりレイアウトが崩れる（row 方向 flex では横並びになる）ため、body を flex-direction: column にするか、センタリング済みメインコンテナ内の末尾に置くこと。それ以外の場合は `</body>` 直前でよい
-- README.md はテンプレートが生成済み。削除しないこと
-- apple-touch-icon / manifest / og-image / robots / sitemap は factory が公開時に自動生成するため、builder は書かない
-- 完成条件: PLAN.md の受け入れ条件をすべて満たし、`npm run verify` が通ること
+その他:
+
+- 静的アプリ（`public/` 配下のみ）。サーバコード・外部 API・ビルドツールは使わない
+- `public/index.html` を単一ファイルで完結させる（CSS/JS インライン可）
+- 雛形のスモークテスト（ページロード・ページエラーなし）は削除しない
+- README.md は削除しない
+
+## 保守の進め方
+
+1. 変更したい振る舞いを受け入れ条件として `tests/app.spec.ts` に先に書く（または既存テストを更新する）
+2. `public/index.html` を実装・修正する
+3. `npm test` と `npm run verify` を通す
+4. `npm run deploy` で Cloudflare Workers へデプロイする
